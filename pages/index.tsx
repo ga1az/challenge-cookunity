@@ -1,8 +1,52 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import styles from '../styles/Home.module.css'
+import Head from "next/head";
+import { useState } from "react";
+import styles from "../styles/Home.module.css";
+
+interface Event {
+  id: string;
+  title: string;
+}
+
+type Schedule = Map<string, Map<string, Event>>;
 
 export default function Home() {
+  const [date, setdate] = useState(() => new Date());
+  const [schedule, setSchedule] = useState<Schedule>(() => new Map());
+
+  function handleMonthChange(offset: number) {
+    const newDate = new Date(date);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setdate(newDate);
+  }
+
+  function handleNewEvent(key: string) {
+    const newSchedule = new Map(schedule);
+
+    if (!newSchedule.has(key)) {
+      newSchedule.set(key, new Map());
+    }
+
+    const day = newSchedule.get(key)!;
+    const id = String(+new Date());
+    const title = window.prompt("Event title");
+
+    if (!title) return;
+
+    day.set(id, {
+      id,
+      title,
+    });
+
+    setSchedule(newSchedule);
+  }
+
+  function handleDeleteEvent(key: string, id: string) {
+    const newSchedule = new Map(schedule);
+    const day = newSchedule.get(key)!;
+    day.delete(id);
+    setSchedule(newSchedule);
+  }
+
   return (
     <div className={styles.container}>
       <Head>
@@ -12,60 +56,72 @@ export default function Home() {
       </Head>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+        <button onClick={() => setdate(new Date())}>TO DAY</button>
+        <nav>
+          <button onClick={() => handleMonthChange(-1)}>←</button>
+          {date.toLocaleString("default", { month: "long", year: "numeric" })}
+          <button onClick={() => handleMonthChange(+1)}>→</button>
+        </nav>
+        <div className={styles.calendar}>
+          {Array.from(
+            {
+              length: new Date(
+                date.getFullYear(),
+                date.getMonth() + 1,
+                0
+              ).getDate(),
+            },
+            (_, i) => {
+              const key = `${date.getFullYear()}/${date.getMonth()}/${i + 1}}`;
+              const events = schedule.get(key);
 
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.tsx</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+              return (
+                <div
+                  onClick={() => {
+                    handleNewEvent(key);
+                  }}
+                  key={i}
+                  className={styles.day}
+                  style={{
+                    borderColor:
+                      new Date().getDate() === i + 1 ? "orange" : "gray",
+                  }}
+                >
+                  {i + 1}
+                  {events && (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.3rem",
+                        flexDirection: "column",
+                      }}
+                    >
+                      {Array.from(events.values()).map((event) => (
+                        <div
+                          style={{
+                            background: "#333",
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            color: "#fff",
+                            margin: "2px 0",
+                          }}
+                          key={event.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteEvent(key, event.id);
+                          }}
+                        >
+                          {event.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+          )}
         </div>
       </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
     </div>
-  )
+  );
 }
